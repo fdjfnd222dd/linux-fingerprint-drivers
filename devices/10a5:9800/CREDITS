@@ -7,3 +7,9 @@ Fedora/dnf packaging: furcom (archived)
   https://github.com/furcom/libfprint-patched
 
 Based on libfprint (LGPL-2.1).
+
+Driver: Jason Huang / Fingerprint Cards AB, libfprint MR !396
+  https://gitlab.freedesktop.org/libfprint/libfprint/-/merge_requests/396
+
+Rebase onto libfprint v1.94.10 and Debian instructions: killixn
+  https://github.com/killixn
