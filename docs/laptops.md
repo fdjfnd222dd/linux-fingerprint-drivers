@@ -17,7 +17,7 @@ lsusb        # find the reader, e.g. 27c6:55b4
 then look it up in the [main README](../README.md), or run
 `./tools/detect.sh` to have it matched for you.
 
-47 model listings map to a catalogued sensor; the rest are on the
+48 model listings map to a catalogued sensor; the rest are on the
 gap-map with no known fix, and a protocol dump for any of them is welcome.
 
 **Adding your machine** is the single most useful small contribution here.
@@ -203,6 +203,7 @@ in practice), **Stale** (abandoned lead), **No known fix**.
 | Laptop model | USB ID | Sensor | Status | Where to go |
 |--------------|--------|--------|--------|-------------|
 | Dynabook Portege X30-D | `06cb:008a` | Synaptics "Viper" via python-validity | Working | [entry](../devices/06cb:008a/) |
+| Dynabook Satellite Pro L50-G | `06cb:00eb` | Synaptics Tudor match-in-sensor | Working | [entry](../devices/06cb:00eb/) |
 | Dynabook Tecra X40-D | `06cb:008a` | Synaptics "Viper" via python-validity | Working | [entry](../devices/06cb:008a/) |
 | Toshiba Portege X30-D | `06cb:008a` | Synaptics "Viper" via python-validity | Working | [entry](../devices/06cb:008a/) |
 | Toshiba Tecra X40-D | `06cb:008a` | Synaptics "Viper" via python-validity | Working | [entry](../devices/06cb:008a/) |
