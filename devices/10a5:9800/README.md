@@ -6,7 +6,8 @@ Fingerprint Cards (FPC) sensor.
 
 ## Hardware
 
-Seen on ThinkPad E14 Gen5.
+Seen on ThinkPad E14 Gen5. The sensor reports a 112x88 image and firmware
+27.26.23.30.
 
 ## What was broken
 
@@ -21,6 +22,12 @@ The upstream attempt to land this driver, libfprint MR
 [!396](https://gitlab.freedesktop.org/libfprint/libfprint/-/merge_requests/396)
 ("fpcmoh: Support FPC moh (match on host) devices", PID 0x9800), was **closed
 without merging**, so the out-of-tree packaging below remains the working route.
+
+The driver links against `libfpcbep.so`, a proprietary library from FPC that
+Lenovo ships in
+[r1slm01w.zip](https://download.lenovo.com/pccbbs/mobiles/r1slm01w.zip)
+(sha256 `c7290f2a70d48f7bdd09bee985534d3511ec00d091887b07f81cf1e08f74c145`).
+It is not mirrored here.
 
 ## Build and install
 
@@ -39,6 +46,57 @@ On other distros, build libfprint with the fpcmoh driver from that source and
 install the accompanying udev rules. furcom's repo (archived, read-only) packaged
 this for Fedora/dnf.
 
+### Debian / Ubuntu (patch against libfprint v1.94.10)
+
+[`patches/0001-fpcmoh-support-10a5-9800-v1.94.10.patch`](patches/) is MR !396
+rebased onto libfprint **v1.94.10**, the version Debian forky ships. Follow
+[docs/BUILD.md](../../docs/BUILD.md) with these deltas:
+
+1. Get the blob and give it a soname. Without one, the linker records the
+   blob's absolute build-time path in `libfprint-2.so`:
+
+   ```sh
+   wget https://download.lenovo.com/pccbbs/mobiles/r1slm01w.zip
+   unzip r1slm01w.zip
+   mkdir -p ~/fpcbep
+   cp FPC_driver_linux_27.26.23.39/install_fpc/libfpcbep.so ~/fpcbep/
+   patchelf --set-soname libfpcbep.so ~/fpcbep/libfpcbep.so
+   ```
+
+2. Check out `v1.94.10`, apply the patch, and point meson at the blob with the
+   `fpcbep_dir` option the patch adds:
+
+   ```sh
+   git checkout v1.94.10
+   git apply /path/to/0001-fpcmoh-support-10a5-9800-v1.94.10.patch
+   meson setup builddir --prefix=/usr/local --libdir=lib/x86_64-linux-gnu \
+       -Dfpcbep_dir="$HOME/fpcbep" -Dudev_hwdb=disabled -Dudev_rules=disabled \
+       -Ddoc=false -Dgtk-examples=false -Dintrospection=false -Dinstalled-tests=false
+   meson compile -C builddir
+   ```
+
+3. Install the library, the blob and Lenovo's udev rule:
+
+   ```sh
+   sudo meson install -C "$PWD/builddir"
+   sudo install -m 0644 ~/fpcbep/libfpcbep.so /usr/local/lib/x86_64-linux-gnu/
+   sudo install -m 0644 FPC_driver_linux_libfprint/install_libfprint/lib/udev/rules.d/60-libfprint-2-device-fpc.rules /etc/udev/rules.d/
+   sudo ldconfig
+   ```
+
+On Debian multiarch, `/usr/local/lib/x86_64-linux-gnu` comes before
+`/usr/lib/x86_64-linux-gnu` in `/etc/ld.so.conf.d/x86_64-linux-gnu.conf`. The
+packaged `fprintd` therefore loads this build while `libfprint-2-2` stays
+installed, and a later `apt upgrade` does not overwrite it. To revert, delete
+the installed files and run `sudo ldconfig`. Check which library is picked up
+with `ldconfig -p | grep libfprint-2.so.2`.
+
+`fprintd-enroll` asks for your password through polkit (`auth_self_keep`). On
+desktops without a visible polkit agent (for example a bare Hyprland or sway
+session), the prompt can time out and enrolling then fails with
+`EnrollStart failed: Timeout was reached`. Running a polkit agent, or
+`sudo fprintd-enroll "$USER"`, avoids this.
+
 ## PAM setup
 
 Enable fprintd in your PAM stack: distro helper where there is one, otherwise
@@ -48,3 +106,6 @@ Enable fprintd in your PAM stack: distro helper where there is one, otherwise
 ## Tested on
 
 - ThinkPad E14 Gen5: Fedora (furcom's packaging); Arch via the AUR package.
+- ThinkPad E14 Gen 5 (21JKS1Q500), sensor firmware 27.26.23.30: Debian forky
+  with the v1.94.10 patch above and Debian's fprintd 1.94.5. Enroll,
+  verify-match with the enrolled finger and verify-no-match with another finger.
